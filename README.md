@@ -6,58 +6,158 @@ Pixel2Gene is  a deep learning framework that enhances existing spatial gene exp
 
 In order to apply the Pixel2Gene platform, you will need the following files:
 
-### **Training Folder** (with training prefix `${train_pref}`):
+### **Training Folder** (prefix: `${train_pref}`)
+
 1. `${train_pref}cnts.tsv` or `${train_pref}cnts.parquet`  
-   Contains gene expression information, with columns representing genes and rows representing bins/cells.
+   Gene expression matrix with genes as columns and bins/cells as rows.
 2. `${train_pref}locs-raw.tsv` or `${train_pref}locs-raw.parquet`  
-   Contains bin/cell location information in the original H&E pixel space after registration, with columns `x` and `y`.
+   Spatial coordinates of bins/cells in the original H&E pixel space after registration, with columns `x` and `y`.
 3. `${train_pref}he-raw.jpg` or `${train_pref}he-raw.tif`  
    Original H&E image.
 4. `${train_pref}radius-raw.txt`  
-   Single value: how many microns one bin/cell spans.
+   Single value specifying the physical diameter (in microns) of each bin or cell.
 5. `${train_pref}pixel-size-raw.txt`  
-   Single value: microns per pixel in the original H&E space.
+   Microns per pixel in the original H&E image.
 6. `${train_pref}pixel-size.txt`  
-   Single value: desired microns per pixel after rescaling. Default is `0.5` so that 1 pixel ≈ 0.5 microns.
+   Desired microns per pixel after rescaling (applied consistently to both image and coordinates).  
+   Default: `0.5` (i.e., 1 pixel ≈ 0.5 µm)
 
 ---
 
-### **Testing Folder** (with testing prefix `${test_pref}`):
+### **Testing Folder** (prefix: `${test_pref}`)
+
 1. `${test_pref}he-raw.jpg` or `${test_pref}he-raw.tif`  
    Original H&E image.
 2. `${test_pref}radius-raw.txt`  
-   Single value: how many microns one bin/cell spans.
+   Physical diameter (in microns) of each bin or cell.
 3. `${test_pref}pixel-size-raw.txt`  
-   Single value: microns per pixel in the original H&E space.
+   Microns per pixel in the original H&E image.
 4. `${test_pref}pixel-size.txt`  
-   Single value: desired microns per pixel after rescaling. Default is `0.5`.
+   Desired microns per pixel after rescaling (default: `0.5`).
+
+---
+
+## ⚠️ Generating Input Files for Visium HD and Xenium Data
+
+This section describes how to generate Pixel2Gene-compatible inputs from Visium HD and Xenium datasets.
+
+---
+
+### Visium HD
+
+1. Prepare the following files:
+   - Binned Visium HD outputs stored in `binned_outputs/`
+   - Raw H&E image stored as `extras/he-raw.btf`  
+     (also supports `.jpg`, `.tif`, `.ome.tif`)
+
+2. Run the formatting script:
+   ```bash
+   python format_visiumHD/format_visiumHD_data.py
+   ```
+   
+3. The final formatted dataset should contain:
+	- `cnts.parquet`
+	- `locs-raw.tsv`
+	- `he-raw.jpg`
+    - `radius-raw.txt`
+	- `pixel-size-raw.txt`
+	- `pixel-size.txt`
+
+---
+
+### Xenium
+Xenium data require explicit registration between morphology/DAPI images and H&E.
+1. Prepare anchor point coordinates in `extras/`, for example:
+   - `extras/morphology#2_keypoints.txt`
+   - `extras/he#2_tiff_keypoints.txt`  
+   - also need the pyramid level of anchor point coordinates for both `.ome.tif` images
+2. Provide a morphology image, one of:
+   -	`morphology_mip.ome.tif`
+   -	`morphology.ome.tif`
+   -	`morphology_focus/morphology_focus_0000.ome.tif`
+3. Run the formatting script:
+   ```bash
+   python format_xenium/keypoints_to_homograph.py
+   ```
+   This generates 
+   - `extras/stage_to_morph.txt`
+   - `extras/morphology_to_he.txt`
+4. Prepare the following files:
+    - `extras/he-raw.ome.tif`
+    - `transcripts.parquet` or `transcripts.csv.gz`
+5. Map transcript coordinates into H&E pixel space:
+   ```bash
+   python format_xenium/coord_he_alignment.py
+   ```
+   This generates
+   - `transcript_he_pixel.parquet`
+6. Generate binned transcript:
+   ```bash
+   python format_xenium/bin_superpixel.py
+   ```
+   This generates super-pixel level (16px x 16px, after rescaling to 0.5µm/pixel) binned data 
+   - `transcript_cnts_xxx_inimage.parquet`
+7. Generate format outputs:
+   ```bash
+   python format_xenium/format_xenium_binned_data.py
+   ```
+8. The final formatted dataset should contain:
+	- `cnts.parquet`
+	- `locs-raw.tsv`
+	- `he-raw.jpg`
+    - `radius-raw.txt`
+	- `pixel-size-raw.txt`
+	- `pixel-size.txt`
+
+
+
 
 ---
 
 ## ⚙️ Setup
 
-First, activate the environment containing the required packages, if any (suppose the enviroment is named Pixel2Gene):
-
+We recommend installing Pixel2Gene in a dedicated Conda environment. 
 ```bash
-conda activate Pixel2Gene
+conda env create -f environment.core.yml
+conda activate pixel2gene
+bash install_pixel2gene.sh
 ```
+Then download Pixel2Gene scripts:
+```bash
+git clone https://github.com/yaosicong1999/Pixel2Gene.git
+```
+or download the .zip from GitHub website.
 
+---
 
 ## 🚀 Usage
 
-1️⃣ Data Preprocessing (including rescaling) & Training
+1️⃣ Data Preprocessing & Training
 
-Edit train_demo.sh — update the variables in lines 10–15 to match your dataset, then run:
-
+Update the variables in `demo_train.sh` (lines 2–17) to match your dataset, then run (under a GPU environment) or submit to GPU nodes:
 ```bash 
-bash train_demo.sh
+bash demo_train.sh
 ```
 
 2️⃣ Prediction
 
-Edit predict_demo.sh — update the variables in lines 10–16, then run:
+Update the variables in `demo_predict.sh` (lines 2–18), then run:
 ```bash
-bash predict_demo.sh
+bash demo_predict.sh
 ```
-The results will be stored in the `${output_predict}/cnts-super/` specified in `predict_demo.sh` as .pickle file for each gene.
 
+The predicted gene expression will be saved to ` ${output_predict}/cnts-super/` (as specified in `demo_predict.sh`), with one `.pickle` file per gene.
+
+3️⃣ Visualization
+
+To visualize predicted or observed gene expression (examples):
+```bash
+pref="../data/xenium/CRC-P2/CRC-P2-" ## change your pref here 
+output="../data/xenium/CRC-P2_self_predict_hipt_raw/filter_he_qc/" ## change your .pickle folder here 
+mask=${pref}"mask-small-hs.png" 
+
+python plot_truth.py --pref=${pref} --output=${output} --overlay
+python plot_truth.py --pref=${pref} --output=${output} --mask=${mask}  --overlay
+python plot_imputed.py --pref=${pref} --output=${output} --n_top=100  --mask=${mask} --overlay
+python plot_imputed.py --pref=${pref} --output=${output} --mask=${mask} --overlay
+```

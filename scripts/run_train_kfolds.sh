@@ -17,4 +17,3 @@ echo "epochs: $epochs"
 echo "emb_type: $emb_type"
 
 CUDA_VISIBLE_DEVICES=0 python impute_filter_train.py ${pref_train} --output_train=${output_train}${mask_pref}_fold_${fold_idx}/ --device=${device} --emb_type=${emb_type} --epochs=${epochs} --load_saved --mask_train=${pref_train}mask-small-${mask_pref}_train_fold_${fold_idx}.png --emb_type=${emb_type}
-CUDA_VISIBLE_DEVICES=0 python impute_filter_train.py ${pref_train} --output_train=${output_train}${mask_pref}_fold_${fold_idx}/ --device=${device} --emb_type=${emb_type} --epochs=${epochs} --load_saved --mask_train=${pref_train}mask-small-${mask_pref}_train_fold_${fold_idx}.png --emb_type=${emb_type}
