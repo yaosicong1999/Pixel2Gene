@@ -1,27 +1,54 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-# 用法：
+# Usage:
 #   run_with_metrics.sh <metrics_prefix> <cmd...>
-# 例：
-#   run_with_metrics.sh logs/foo_preprocess bash run_preprocessing.sh ...
+
+ENV_NAME="${ENV_NAME:-pixel2gene}"
+CONDA_SH="${CONDA_SH:-$HOME/miniconda3/etc/profile.d/conda.sh}"
 
 prefix="$1"
 shift
 
+# Make prefix absolute
+if [[ "$prefix" != /* ]]; then
+  prefix="$(pwd)/$prefix"
+fi
 mkdir -p "$(dirname "$prefix")"
 
 metrics_txt="${prefix}.metrics.txt"
 gpu_csv="${prefix}.gpu.csv"
 time_txt="${prefix}.time.txt"
+stdout_txt="${prefix}.stdout.txt"
+stderr_txt="${prefix}.stderr.txt"
 
-echo "== START $(date -Is) ==" | tee -a "$metrics_txt"
-echo "Host: $(hostname)" | tee -a "$metrics_txt"
-echo "LSB_JOBID=${LSB_JOBID:-}" | tee -a "$metrics_txt"
-echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}" | tee -a "$metrics_txt"
-echo "Command: $*" | tee -a "$metrics_txt"
+log() { echo "$*" | tee -a "$metrics_txt"; }
 
-# GPU 采样（如果有 nvidia-smi）
+log "== START $(date -Is) =="
+log "Host: $(hostname)"
+log "PWD: $(pwd)"
+log "LSB_JOBID=${LSB_JOBID:-}"
+log "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}"
+log "Command: $*"
+
+# ---- activate conda env (hard fail if cannot) ----
+if [[ -f "$CONDA_SH" ]]; then
+  # shellcheck disable=SC1091
+  source "$CONDA_SH"
+else
+  echo "[ERROR] conda.sh not found at: $CONDA_SH" | tee -a "$metrics_txt" >&2
+  exit 2
+fi
+
+conda activate "$ENV_NAME" || { echo "[ERROR] failed to activate conda env: $ENV_NAME" | tee -a "$metrics_txt" >&2; exit 2; }
+
+log "which python: $(which python)"
+python -c "import sys; print('sys.executable:', sys.executable)" | tee -a "$metrics_txt"
+
+# (optional) torch check: uncomment if you want hard guarantee
+python -c "import torch; print('torch:', torch.__version__, 'cuda:', torch.version.cuda, 'cuda_available:', torch.cuda.is_available())" | tee -a "$metrics_txt"
+
+# GPU sampling
 gpu_sampler_pid=""
 if command -v nvidia-smi >/dev/null 2>&1; then
   echo "timestamp,index,uuid,name,util.gpu,util.mem,mem.used,mem.total" > "$gpu_csv"
@@ -35,18 +62,18 @@ if command -v nvidia-smi >/dev/null 2>&1; then
   gpu_sampler_pid=$!
 fi
 
-# 运行命令，并记录 time -v
-# 注意：/usr/bin/time -v 的输出在 stderr，所以我们重定向到 time_txt
+# Run command
 set +e
-/usr/bin/time -v "$@" 1>>"${prefix}.stdout.txt" 2>>"$time_txt"
+/usr/bin/time -v -o "$time_txt" "$@" \
+  1>>"$stdout_txt" \
+  2> >(tee -a "$stderr_txt" >&2)
 rc=$?
 set -e
 
-# 停掉 GPU 采样
 if [[ -n "$gpu_sampler_pid" ]]; then
   kill "$gpu_sampler_pid" >/dev/null 2>&1 || true
 fi
 
-echo "ExitCode: $rc" | tee -a "$metrics_txt"
-echo "== END $(date -Is) ==" | tee -a "$metrics_txt"
+log "ExitCode: $rc"
+log "== END $(date -Is) =="
 exit $rc

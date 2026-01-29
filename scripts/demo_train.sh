@@ -1,10 +1,9 @@
 #!/bin/bash
-#BSUB -J xCRCP2Train
-#BSUB -o xCRCP2Train.%J.out
-#BSUB -e xCRCP2Train.%J.error
+set -euo pipefail
 
-source ~/miniconda3/etc/profile.d/conda.sh
-conda activate pixel2gene
+# update: conda activate will be executed in run_with_metrics.sh!
+# source ~/miniconda3/etc/profile.d/conda.sh
+# conda activate pixel2gene
 
 # -----------------------------
 # Config
@@ -20,10 +19,21 @@ logdir="logs/${pref}"
 mkdir -p "$logdir"
 
 
+
+# --- use a clean env when calling bsub (avoid conda LD_LIBRARY_PATH issues) ---
+BSUB_BIN="$(command -v bsub)"
+
+submit() {
+  # wipe conda contamination but keep LSF/client env
+  env -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u CONDA_EXE -u _CE_CONDA -u _CE_M \
+      -u PYTHONPATH -u LD_LIBRARY_PATH -u DYLD_LIBRARY_PATH \
+      "$BSUB_BIN" "$@"
+}
+
 # -----------------------------
 # Step 0: preprocess
 # -----------------------------
-jid_preprocess=$(bsub -m "transgene2" -q mingyaogpu -gpu "num=2" -n 2 \
+jid_preprocess=$(submit -m "transgene2" -q mingyaogpu -gpu "num=2" -n 2 \
     -oo "${logdir}/preprocess.lsf.out" \
     -eo "${logdir}/preprocess.lsf.err" \
     bash run_with_metrics.sh "${logdir}/preprocess" \
@@ -32,7 +42,7 @@ jid_preprocess=$(bsub -m "transgene2" -q mingyaogpu -gpu "num=2" -n 2 \
 
 
 # -----------------------------
-# Step 1: truth clustering 
+# Step 1: truth clustering
 # -----------------------------
 # jid_cluster_truth0=$( \
 #     bsub -w "done(${jid_preprocess})" -q mingyao_normal -n 16 \
@@ -53,7 +63,7 @@ jid_preprocess=$(bsub -m "transgene2" -q mingyaogpu -gpu "num=2" -n 2 \
 
 # Part 0: folds 0 -> 3
 first_fold_part_0=0
-jid_part_0=$(bsub -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
+jid_part_0=$(submit -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
     -oo "${logdir}/fold_${first_fold_part_0}.lsf.out" \
     -eo "${logdir}/fold_${first_fold_part_0}.lsf.err" \
     bash run_with_metrics.sh "${logdir}/fold_${first_fold_part_0}" \
@@ -62,7 +72,7 @@ jid_part_0=$(bsub -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gp
     | awk '{print $2}' | tr -d '<>')
 
 for fold in {1..3}; do
-    jid_part_0=$(bsub -w "done(${jid_part_0})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
+    jid_part_0=$(submit -w "done(${jid_part_0})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
         -oo "${logdir}/fold_${fold}.lsf.out" \
         -eo "${logdir}/fold_${fold}.lsf.err" \
         bash run_with_metrics.sh "${logdir}/fold_${fold}" \
@@ -73,7 +83,7 @@ done
 
 # Part 1: folds 4 -> 6
 first_fold_part_1=4
-jid_part_1=$(bsub -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
+jid_part_1=$(submit -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
     -oo "${logdir}/fold_${first_fold_part_1}.lsf.out" \
     -eo "${logdir}/fold_${first_fold_part_1}.lsf.err" \
     bash run_with_metrics.sh "${logdir}/fold_${first_fold_part_1}" \
@@ -82,7 +92,7 @@ jid_part_1=$(bsub -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gp
     | awk '{print $2}' | tr -d '<>')
 
 for fold in {5..6}; do
-    jid_part_1=$(bsub -w "done(${jid_part_1})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
+    jid_part_1=$(submit -w "done(${jid_part_1})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
         -oo "${logdir}/fold_${fold}.lsf.out" \
         -eo "${logdir}/fold_${fold}.lsf.err" \
         bash run_with_metrics.sh "${logdir}/fold_${fold}" \
@@ -93,7 +103,7 @@ done
 
 # Part 2: folds 7 -> 9
 first_fold_part_2=7
-jid_part_2=$(bsub -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
+jid_part_2=$(submit -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
     -oo "${logdir}/fold_${first_fold_part_2}.lsf.out" \
     -eo "${logdir}/fold_${first_fold_part_2}.lsf.err" \
     bash run_with_metrics.sh "${logdir}/fold_${first_fold_part_2}" \
@@ -102,7 +112,7 @@ jid_part_2=$(bsub -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gp
     | awk '{print $2}' | tr -d '<>')
 
 for fold in {8..9}; do
-    jid_part_2=$(bsub -w "done(${jid_part_2})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
+    jid_part_2=$(submit -w "done(${jid_part_2})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
         -oo "${logdir}/fold_${fold}.lsf.out" \
         -eo "${logdir}/fold_${fold}.lsf.err" \
         bash run_with_metrics.sh "${logdir}/fold_${fold}" \
