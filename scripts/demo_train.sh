@@ -1,122 +1,35 @@
-#!/bin/bash
-set -euo pipefail
-
-# update: conda activate will be executed in run_with_metrics.sh!
-# source ~/miniconda3/etc/profile.d/conda.sh
-# conda activate pixel2gene
-
 # -----------------------------
 # Config
 # -----------------------------
 pref='xenium_CRC-P2_train_hipt_raw'
-pref_train='../data/xenium/CRC-P2/CRC-P2-'
-mask_pref='filter_he_qc'
-output_train='../data/xenium/CRC-P2/CRC-P2_train_hipt_raw/'
-epochs=600
-emb_type='hipt_raw'
+pref_train='../data/xenium/CRC-P2/CRC-P2-' ## training cnts, locs files with this prefix
+output_train='../data/xenium/CRC-P2/CRC-P2_train_hipt_raw/' ## training output folder
+mask_pref='filter_he_qc' ## this is the mask for filtering out training samples, i.e. only superpixels within this mask will be kept. by default we use this one after quality-control
+epochs=600 ## you can modify the epochs here
+emb_type='hipt_raw' ## if you want to use smoothened-version of HIPT, please specify "hipt"
 
+## this is the folder that we will store the logs in
 logdir="logs/${pref}"
 mkdir -p "$logdir"
 
 
-
-# --- use a clean env when calling bsub (avoid conda LD_LIBRARY_PATH issues) ---
-BSUB_BIN="$(command -v bsub)"
-
-submit() {
-  # wipe conda contamination but keep LSF/client env
-  env -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u CONDA_EXE -u _CE_CONDA -u _CE_M \
-      -u PYTHONPATH -u LD_LIBRARY_PATH -u DYLD_LIBRARY_PATH \
-      "$BSUB_BIN" "$@"
-}
-
 # -----------------------------
 # Step 0: preprocess
 # -----------------------------
-jid_preprocess=$(submit -m "transgene2" -q mingyaogpu -gpu "num=2" -n 2 \
-    -oo "${logdir}/preprocess.lsf.out" \
-    -eo "${logdir}/preprocess.lsf.err" \
-    bash run_with_metrics.sh "${logdir}/preprocess" \
-      bash run_preprocessing.sh "${pref_train}" "${pref_train}" \
-    | awk '{print $2}' | tr -d '<>')
-
+## this run_preprocessing.sh assume that this node is with CUDA on (for feature extraction)
+bash run_with_metrics.sh "${logdir}/preprocess" bash run_preprocessing.sh "${pref_train}"
 
 # -----------------------------
-# Step 1: truth clustering
+# Step 1: k-fold training
 # -----------------------------
-# jid_cluster_truth0=$( \
-#     bsub -w "done(${jid_preprocess})" -q mingyao_normal -n 16 \
-#         -e logs/${pref}cluster_truth.err \
-#         bash run_cluster_truth.sh ${pref_train} ${output_train}/ 'hs' \
-#     | awk '{print $2}' | tr -d '<>' )
-
-# jid_cluster_truth1=$( \
-#     bsub -w "done(${jid_preprocess})" -q mingyao_normal -n 16 \
-#         -e logs/${pref}cluster_truth.err \
-#         bash run_cluster_truth.sh ${pref_train} ${output_train}/ ${mask_pref} \
-#     | awk '{print $2}' | tr -d '<>' )
-
-
-# -----------------------------
-# Step 2: k-fold training
-# -----------------------------
-
-# Part 0: folds 0 -> 3
-first_fold_part_0=0
-jid_part_0=$(submit -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
-    -oo "${logdir}/fold_${first_fold_part_0}.lsf.out" \
-    -eo "${logdir}/fold_${first_fold_part_0}.lsf.err" \
-    bash run_with_metrics.sh "${logdir}/fold_${first_fold_part_0}" \
-      bash run_train_kfolds.sh ${pref_train} \
-        ${output_train} ${mask_pref} ${first_fold_part_0} ${epochs} ${emb_type} \
-    | awk '{print $2}' | tr -d '<>')
-
-for fold in {1..3}; do
-    jid_part_0=$(submit -w "done(${jid_part_0})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
-        -oo "${logdir}/fold_${fold}.lsf.out" \
-        -eo "${logdir}/fold_${fold}.lsf.err" \
-        bash run_with_metrics.sh "${logdir}/fold_${fold}" \
-          bash run_train_kfolds.sh ${pref_train} \
-            ${output_train} ${mask_pref} ${fold} ${epochs} ${emb_type} \
-        | awk '{print $2}' | tr -d '<>')
-done
-
-# Part 1: folds 4 -> 6
-first_fold_part_1=4
-jid_part_1=$(submit -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
-    -oo "${logdir}/fold_${first_fold_part_1}.lsf.out" \
-    -eo "${logdir}/fold_${first_fold_part_1}.lsf.err" \
-    bash run_with_metrics.sh "${logdir}/fold_${first_fold_part_1}" \
-      bash run_train_kfolds.sh ${pref_train} \
-        ${output_train} ${mask_pref} ${first_fold_part_1} ${epochs} ${emb_type} \
-    | awk '{print $2}' | tr -d '<>')
-
-for fold in {5..6}; do
-    jid_part_1=$(submit -w "done(${jid_part_1})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
-        -oo "${logdir}/fold_${fold}.lsf.out" \
-        -eo "${logdir}/fold_${fold}.lsf.err" \
-        bash run_with_metrics.sh "${logdir}/fold_${fold}" \
-          bash run_train_kfolds.sh ${pref_train} \
-            ${output_train} ${mask_pref} ${fold} ${epochs} ${emb_type} \
-        | awk '{print $2}' | tr -d '<>')
-done
-
-# Part 2: folds 7 -> 9
-first_fold_part_2=7
-jid_part_2=$(submit -w "done(${jid_preprocess})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
-    -oo "${logdir}/fold_${first_fold_part_2}.lsf.out" \
-    -eo "${logdir}/fold_${first_fold_part_2}.lsf.err" \
-    bash run_with_metrics.sh "${logdir}/fold_${first_fold_part_2}" \
-      bash run_train_kfolds.sh ${pref_train} \
-        ${output_train} ${mask_pref} ${first_fold_part_2} ${epochs} ${emb_type} \
-    | awk '{print $2}' | tr -d '<>')
-
-for fold in {8..9}; do
-    jid_part_2=$(submit -w "done(${jid_part_2})" -m "transgene2" -q mingyaogpu -gpu "num=2" -n 4 \
-        -oo "${logdir}/fold_${fold}.lsf.out" \
-        -eo "${logdir}/fold_${fold}.lsf.err" \
-        bash run_with_metrics.sh "${logdir}/fold_${fold}" \
-          bash run_train_kfolds.sh ${pref_train} \
-            ${output_train} ${mask_pref} ${fold} ${epochs} ${emb_type} \
-        | awk '{print $2}' | tr -d '<>')
-done
+# this run_predict_kfolds.sh assume that this node is with CUDA on (for training)
+bash run_with_metrics.sh "${logdir}/fold_0" bash run_train_kfolds.sh ${pref_train} ${output_train} ${mask_pref} 0 ${epochs} ${emb_type}
+bash run_with_metrics.sh "${logdir}/fold_1" bash run_train_kfolds.sh ${pref_train} ${output_train} ${mask_pref} 1 ${epochs} ${emb_type}
+bash run_with_metrics.sh "${logdir}/fold_2" bash run_train_kfolds.sh ${pref_train} ${output_train} ${mask_pref} 2 ${epochs} ${emb_type}
+bash run_with_metrics.sh "${logdir}/fold_3" bash run_train_kfolds.sh ${pref_train} ${output_train} ${mask_pref} 3 ${epochs} ${emb_type}
+bash run_with_metrics.sh "${logdir}/fold_4" bash run_train_kfolds.sh ${pref_train} ${output_train} ${mask_pref} 4 ${epochs} ${emb_type}
+bash run_with_metrics.sh "${logdir}/fold_5" bash run_train_kfolds.sh ${pref_train} ${output_train} ${mask_pref} 5 ${epochs} ${emb_type}
+bash run_with_metrics.sh "${logdir}/fold_6" bash run_train_kfolds.sh ${pref_train} ${output_train} ${mask_pref} 6 ${epochs} ${emb_type}
+bash run_with_metrics.sh "${logdir}/fold_7" bash run_train_kfolds.sh ${pref_train} ${output_train} ${mask_pref} 7 ${epochs} ${emb_type}
+bash run_with_metrics.sh "${logdir}/fold_8" bash run_train_kfolds.sh ${pref_train} ${output_train} ${mask_pref} 8 ${epochs} ${emb_type}
+bash run_with_metrics.sh "${logdir}/fold_9" bash run_train_kfolds.sh ${pref_train} ${output_train} ${mask_pref} 9 ${epochs} ${emb_type}

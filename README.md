@@ -126,25 +126,29 @@ Then download Pixel2Gene scripts:
 ```bash
 git clone https://github.com/yaosicong1999/Pixel2Gene.git
 ```
-or download the .zip from GitHub website.
-
+or download the .zip from GitHub website. Then just:
+```bash
+cd Pixel2Gene/scripts
+```
 ---
 
 ## 🚀 Usage
 
 1️⃣ Data Preprocessing & Training
 
-Update the variables in `demo_train.sh` (lines 2–17) to match your dataset, then run (under a GPU environment) or submit to GPU nodes:
+Update the variables in `demo_train.sh` (lines 2–17) to match your dataset. Suppose you are on an interactive GPU node, then you can directly use:
 ```bash 
 bash demo_train.sh
 ```
+or you can create separate files by modifying `demo_train.sh`  for job submission. 
 
 2️⃣ Prediction
 
-Update the variables in `demo_predict.sh` (lines 2–18), then run:
+Update the variables in `demo_predict.sh` (lines 2–18) to match your dataset. Suppose you are on an interactive GPU node, then you can directly use:
 ```bash
 bash demo_predict.sh
 ```
+or you can create separate files by modifying `demo_train.sh`  for job submission. 
 
 The predicted gene expression will be saved to ` ${output_predict}/cnts-super/` (as specified in `demo_predict.sh`), with one `.pickle` file per gene.
 
@@ -153,7 +157,7 @@ The predicted gene expression will be saved to ` ${output_predict}/cnts-super/` 
 To visualize predicted or observed gene expression (examples):
 ```bash
 pref="../data/xenium/CRC-P2/CRC-P2-" ## change your pref here 
-output="../data/xenium/CRC-P2_self_predict_hipt_raw/filter_he_qc/" ## change your .pickle folder here 
+output="../data/xenium/CRC-P2_self_predict_hipt_raw/filter_he_qc/" ## change your folder contains  ${output_predict}/cnts-super/ here 
 mask=${pref}"mask-small-hs.png" 
 
 python plot_truth.py --pref=${pref} --output=${output} --overlay
