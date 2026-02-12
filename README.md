@@ -1,6 +1,7 @@
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Version](https://img.shields.io/badge/version-v1.0.0-blue)
 # Pixel2Gene unites enhancement and inference in spatial transcriptomics from histology
- 
-Pixel2Gene is  a deep learning framework that enhances existing spatial gene expression measurements at single-cell resolution while inferring expression de novo in uncharacterized regions, leveraging co-registered histology images to enable comprehensive, histology-guided spatial profiling.
+Pixel2Gene is a deep learning framework that enhances existing spatial gene expression measurements at single-cell resolution while inferring expression de novo in uncharacterized regions, leveraging co-registered histology images to enable comprehensive, histology-guided spatial profiling.
 
 ## 📂 Required Input Files
 
@@ -116,20 +117,27 @@ Xenium data require explicit registration between morphology/DAPI images and H&E
 
 ## ⚙️ Setup
 
+## ⚙️ Setup
+
+First, clone the repository:
+```bash
+git clone https://github.com/yaosicong1999/Pixel2Gene.git
+cd Pixel2Gene
+```
 We recommend installing Pixel2Gene in a dedicated Conda environment. 
 ```bash
 conda env create -f environment.core.yml
 conda activate pixel2gene
 bash install_pixel2gene.sh
 ```
-Then download Pixel2Gene scripts:
-```bash
-git clone https://github.com/yaosicong1999/Pixel2Gene.git
-```
-or download the .zip from GitHub website. Then just:
+Typical installation time is approximately 10–20 minutes on a standard Linux desktop with internet access, depending on network speed and package resolution.
+Then just:
 ```bash
 cd Pixel2Gene/scripts
 ```
+### Tested environments
+Pixel2Gene has been tested on Red Hat Enterprise Linux 9.4 (x86_64) with Python 3.8.19 and PyTorch 2.4.1 (CUDA 12.4).
+Training and prediction require a CUDA-compatible GPU.
 ---
 
 ## 🚀 Usage
