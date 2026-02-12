@@ -136,8 +136,8 @@ Then just:
 cd Pixel2Gene/scripts
 ```
 ### Tested environments
-Pixel2Gene has been tested on Red Hat Enterprise Linux 9.4 (x86_64) with Python 3.8.19 and PyTorch 2.4.1 (CUDA 12.4).
-Training and prediction require a CUDA-compatible GPU.
+Pixel2Gene has been tested on Red Hat Enterprise Linux 9.4 (x86_64) with Python 3.8.19 and PyTorch 2.4.1 (CUDA 12.4). Training and prediction require a CUDA-compatible GPU.
+
 ---
 
 ## 🚀 Usage
