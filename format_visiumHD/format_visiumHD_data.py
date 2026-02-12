@@ -164,10 +164,10 @@ with open(out_dir+"full_image/full-pixel-size.txt", 'w') as file:
     file.write(str(0.5))
 locs.to_csv(out_dir +"full_image/full-locs-raw.tsv", sep='\t')
 dir_temp = out_dir+"full_image/full-"
-rescale_script = "/Users/sicongy/Documents/GitHub/rotation_1/input_integrated_code/rescale.py"
+rescale_script = "../scripts/rescale.py"
 cmd = f"""
 source ~/miniconda3/etc/profile.d/conda.sh
-conda activate istar
+conda activate pixel2gene
 export dir="{dir_temp}"
 python {rescale_script} {dir_temp} --locs
 """
