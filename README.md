@@ -1,5 +1,3 @@
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Version](https://img.shields.io/badge/version-v1.0.0-blue)
 # Pixel2Gene unites enhancement and inference in spatial transcriptomics from histology
 Pixel2Gene is a deep learning framework that enhances existing spatial gene expression measurements at single-cell resolution while inferring expression de novo in uncharacterized regions, leveraging co-registered histology images to enable comprehensive, histology-guided spatial profiling.
 
@@ -136,8 +134,8 @@ Then just:
 cd Pixel2Gene/scripts
 ```
 ### Tested environments
-Pixel2Gene has been tested on Red Hat Enterprise Linux 9.4 (x86_64) with Python 3.8.19 and PyTorch 2.4.1 (CUDA 12.4).
-Training and prediction require a CUDA-compatible GPU.
+Pixel2Gene has been tested on Red Hat Enterprise Linux 9.4 (x86_64) with Python 3.8.19 and PyTorch 2.4.1 (CUDA 12.4). Training and prediction require a CUDA-compatible GPU.
+
 ---
 
 ## 🚀 Usage
