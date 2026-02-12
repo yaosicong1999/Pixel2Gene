@@ -1,5 +1,3 @@
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Version](https://img.shields.io/badge/version-v1.0.0-blue)
 # Pixel2Gene unites enhancement and inference in spatial transcriptomics from histology
 Pixel2Gene is a deep learning framework that enhances existing spatial gene expression measurements at single-cell resolution while inferring expression de novo in uncharacterized regions, leveraging co-registered histology images to enable comprehensive, histology-guided spatial profiling.
 
