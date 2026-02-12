@@ -12,7 +12,7 @@ In order to apply the Pixel2Gene platform, you will need the following files:
    Gene expression matrix with genes as columns and bins/cells as rows.
 2. `${train_pref}locs-raw.tsv` or `${train_pref}locs-raw.parquet`  
    Spatial coordinates of bins/cells in the original H&E pixel space after registration, with columns `x` and `y`.
-3. `${train_pref}he-raw.jpg` or `${train_pref}he-raw.tif`  
+3. `${train_pref}he-raw.jpg` or `${`train_pref}he-raw.tif`  
    Original H&E image.
 4. `${train_pref}radius-raw.txt`  
    Single value specifying the physical diameter (in microns) of each bin or cell.
@@ -140,7 +140,9 @@ Update the variables in `demo_train.sh` (lines 2–17) to match your dataset. Su
 ```bash 
 bash demo_train.sh
 ```
-or you can create separate files by modifying `demo_train.sh`  for job submission. 
+
+**Estimated runtime:**
+For the provided demo configuration (600 training epochs), training typically takes approximately 3 hours on a single high-end GPU (e.g., NVIDIA A100 or equivalent). Runtime may vary depending on dataset size and hardware specifications.
 
 2️⃣ Prediction
 
@@ -148,9 +150,10 @@ Update the variables in `demo_predict.sh` (lines 2–18) to match your dataset. 
 ```bash
 bash demo_predict.sh
 ```
-or you can create separate files by modifying `demo_train.sh`  for job submission. 
-
 The predicted gene expression will be saved to ` ${output_predict}/cnts-super/` (as specified in `demo_predict.sh`), with one `.pickle` file per gene.
+
+**Estimated runtime:**
+For the provided demo configuration, prediction typically takes approximately 10 minutes on a single high-end GPU (e.g., NVIDIA A100 or equivalent). Runtime may vary depending on dataset size and hardware specifications.
 
 3️⃣ Visualization
 
